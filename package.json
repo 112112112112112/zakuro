@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "discord.js": "^14.25.1"
   },
   "devDependencies": {
