@@ -29,51 +29,39 @@ module.exports = {
 
         const collector = interaction.channel.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
+            filter: i => i.customId === 'character' && i.user.id === interaction.user.id,
             max: 1,
             time: 15000
         });
 
         collector.on('collect', async i => {
-            if (i.user.id === interaction.user.id) {
-                const classSelect = new StringSelectMenuBuilder()
-                .setCustomId('class')
-                .setPlaceholder('Choose your class')
-                .addOptions(
-                    classes[i.values[0]].map(cls => new StringSelectMenuOptionBuilder()
-                    .setLabel(cls.name)
-                    .setValue(cls.name)
-                    .setEmoji(cls.emote)
-                ));
+            const classSelect = new StringSelectMenuBuilder()
+            .setCustomId('class')
+            .setPlaceholder('Choose your class')
+            .addOptions(
+                classes[i.values[0]].map(cls => new StringSelectMenuOptionBuilder()
+                .setLabel(cls.name)
+                .setValue(cls.name)
+                .setEmoji(cls.emote)
+            ));
 
-                const classRow = new ActionRowBuilder().addComponents(classSelect);
-                await i.update({ components: [classRow] });
+            const classRow = new ActionRowBuilder().addComponents(classSelect);
+            await i.update({ components: [classRow] });
 
-                const selectedChar = i.values[0];
-                const classCollector = interaction.channel.createMessageComponentCollector({
-                    componentType: ComponentType.StringSelect,
-                    max: 1,
-                    time: 15000
-                });
+            const selectedChar = i.values[0];
+            const classCollector = interaction.channel.createMessageComponentCollector({
+                componentType: ComponentType.StringSelect,
+                filter: i => i.customId === 'class' && i.user.id === interaction.user.id,
+                max: 1,
+                time: 15000
+            });
 
-                classCollector.on('collect', async i => {
-                    if (i.user.id === interaction.user.id) {
-                        const selectedClass = classes[selectedChar].find(cls => cls.name === i.values[0]);
-                        db.prepare('INSERT INTO characters (user_id, name, class) VALUES (?, ?, ?)').run(interaction.user.id, interaction.options.getString('name'), i.values[0]);
+            classCollector.on('collect', async i => {
+                const selectedClass = classes[selectedChar].find(cls => cls.name === i.values[0]);
+                db.prepare('INSERT INTO characters (user_id, name, class) VALUES (?, ?, ?)').run(interaction.user.id, interaction.options.getString('name'), i.values[0]);
 
-                        await i.update({ content: `Added character ${selectedClass.emote} ${interaction.options.getString('name')} to your account!`, components: [] });
-                    }
-                });
-
-
-
-                classCollector.on('end', collected => {
-                    if (collected.size !== 0) {
-                        console.log(`Collected ${collected.size} interactions.`);
-                    }
-                })
-            } else {
-                i.reply({ content: `You didn't use this command!`, flags: MessageFlags.Ephemeral});
-            }
+                await i.update({ content: `Added character ${selectedClass.emote} ${interaction.options.getString('name')} to your account!`, components: [] });
+            });
         });
     },
 };
