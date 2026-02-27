@@ -31,7 +31,7 @@ module.exports = {
             componentType: ComponentType.StringSelect,
             filter: i => i.customId === 'character' && i.user.id === interaction.user.id,
             max: 1,
-            time: 15000
+            time: 60000
         });
 
         collector.on('collect', async i => {
@@ -53,7 +53,7 @@ module.exports = {
                 componentType: ComponentType.StringSelect,
                 filter: i => i.customId === 'class' && i.user.id === interaction.user.id,
                 max: 1,
-                time: 15000
+                time: 60000
             });
 
             classCollector.on('collect', async i => {
