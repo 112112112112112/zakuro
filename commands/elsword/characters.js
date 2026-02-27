@@ -10,6 +10,10 @@ module.exports = {
         const allClasses = Object.values(classes).flat();
         let description = '';
 
+        if (allCharacters.length === 0) {
+            return interaction.reply({ content: 'Use /add-character first, your account is empty!' })
+        }
+
         for (const char of allCharacters) {
             const emote = allClasses.find(cls => cls.name === char.class).emote;
             description += `${emote} ${char.name}\n`;
