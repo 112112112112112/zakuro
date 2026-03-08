@@ -9,6 +9,10 @@ module.exports = {
         
         if (!userExists) {
             db.prepare('INSERT INTO users(id) VALUES (?)').run(interaction.user.id);
+            const tasks = db.prepare('SELECT id FROM tasks WHERE bound = "account"').all();
+            for (const task of tasks) {
+                db.prepare('INSERT INTO checklist (user_id, task_id, completed) VALUES (?, ?, 0)').run(interaction.user.id, task.id);
+            }
             await interaction.reply(
                 `Made an account succesfully!`,
             );
