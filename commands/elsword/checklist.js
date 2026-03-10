@@ -2,6 +2,14 @@ const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRow
 const db = require('../../database.js');
 const classes = require('../../classes.js');
 
+/**
+ * Create an embed wist of tasks based on completion for the user's in-game account
+ * Create rows of 5 buttons at most for each task, green if completed, red if not
+ * @param {*} userId - User's discord ID
+ * @param {*} displayName - User's display name in the discord server
+ * @param {*} avatar - User's profile picture
+ * @returns 
+ */
 function checklistBuilder(userId, displayName, avatar) {
     const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.user_id = ? AND tasks.bound = 'account' AND checklist.character_id IS NULL")
     .all(userId);
@@ -28,6 +36,14 @@ function checklistBuilder(userId, displayName, avatar) {
     return { embed, rows };
 }
 
+/**
+ * Create an embed wist of tasks based on completion for the user's in-game selected character
+ * Create rows of 5 buttons at most for each task, green if completed, red if not
+ * @param {*} charId - User's character ID
+ * @param {*} displayName - User's character name
+ * @param {*} avatar - User's profile picture
+ * @returns 
+ */
 function characterChecklistBuilder(charId, displayName, avatar) {
     const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.character_id = ? AND tasks.bound = 'character'")
     .all(charId);
@@ -65,6 +81,7 @@ module.exports = {
     ),
 
 	async execute(interaction) {
+        // ? Verification: user needs to be registered and have synced their tasks previously
         const userExists = db.prepare('SELECT * FROM users WHERE id = ?').get(interaction.user.id);
         if (!userExists) {
             return interaction.reply({ content: `Make an account using /register before trying to view your checklist!`, flags: MessageFlags.Ephemeral});
@@ -75,6 +92,7 @@ module.exports = {
             return interaction.reply({ content: 'Use `/sync` first to see your checklist!' });
         }
 
+        // ? Character Checklist ===============================================================================
         const usesCharacter = interaction.options.getBoolean('character');
         if (usesCharacter) {
             const userChars = db.prepare('SELECT id, name, class FROM characters WHERE user_id = ?').all(interaction.user.id);
@@ -97,6 +115,7 @@ module.exports = {
                 })
             );
 
+            // ? Select character and their checklist
             let currentChar = null;
             let currentEmote = null;
             const characterRow = new ActionRowBuilder().addComponents(characterSelect);
@@ -116,6 +135,7 @@ module.exports = {
 
             });
 
+            // ? Update checklist on button click
             const buttonCollector = interaction.channel.createMessageComponentCollector({
                 componentType: ComponentType.Button,
                 filter: i => i.user.id === interaction.user.id,
@@ -130,8 +150,7 @@ module.exports = {
                 await i.update({ embeds: [embed], components: [characterRow, ...rows] });
             })
         } else {
-
-            
+            // ? Account Checklist ===============================================================================
             const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName, interaction.user.displayAvatarURL());
             await interaction.reply({ embeds: [embed], components: rows });
             
