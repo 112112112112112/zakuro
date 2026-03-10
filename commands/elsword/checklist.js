@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, MessageFlags } = require('discord.js');
 const db = require('../../database.js');
 
 
@@ -14,16 +14,26 @@ module.exports = {
         .all(interaction.user.id);
 
         const embed = new EmbedBuilder().setTitle(`${interaction.member.displayName}'s Account Checklist`).setColor('#ff7b00');
-        let description = '';
+        const rows = [];
 
-        for (const task of accountTasks) {
+        let description = '';
+        
+        for (let i = 0; i < accountTasks.length; i++) {
+            const task = accountTasks[i];
             description += `${task.completed ? '✅' : '❌'} ${task.title}\n\n`;
+
+            if (i % 5 === 0) {
+                rows.push(new ActionRowBuilder());
+            }
+            
+            const button = new ButtonBuilder().setCustomId(task.id.toString()).setLabel(task.title).setStyle(task.completed ? ButtonStyle.Success : ButtonStyle.Danger);
+            rows[rows.length - 1].addComponents(button);
         }
 
         embed.setDescription(description);
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ embeds: [embed], components: rows });
 
-
+        
 	},
 };
