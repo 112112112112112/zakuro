@@ -36,7 +36,6 @@ module.exports = {
             })
         );
 
-
         const characterRow = new ActionRowBuilder().addComponents(characterSelect);
         await interaction.reply({ components: [characterRow] });
 
