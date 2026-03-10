@@ -1,11 +1,11 @@
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, MessageFlags, ComponentType } = require('discord.js');
 const db = require('../../database.js');
 
-function checklistBuilder(userId, displayName) {
+function checklistBuilder(userId, displayName, avatar) {
     const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.user_id = ? AND tasks.bound = 'account' AND checklist.character_id IS NULL")
     .all(userId);
 
-    const embed = new EmbedBuilder().setTitle(`${displayName}'s Account Checklist`).setColor('#ff7b00');
+    const embed = new EmbedBuilder().setTitle(`${displayName}'s Account Checklist`).setColor('#ff7b00').setThumbnail(avatar);
     const rows = [];
 
     let description = '';
@@ -35,7 +35,12 @@ module.exports = {
             return interaction.reply({ content: `Make an account using /register before trying to view your checklist!`, flags: MessageFlags.Ephemeral});
         }
 
-        const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName);
+        const hasChecklist = db.prepare('SELECT * FROM checklist WHERE user_id = ?').get(interaction.user.id);
+        if (!hasChecklist) {
+            return interaction.reply({ content: 'Use `/sync` first to see your checklist!' });
+        }
+
+        const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName, interaction.user.displayAvatarURL());
         await interaction.reply({ embeds: [embed], components: rows });
 
         const collector = interaction.channel.createMessageComponentCollector({
@@ -47,7 +52,7 @@ module.exports = {
         collector.on('collect', async i => {
             const id = parseInt(i.customId);
             db.prepare('UPDATE checklist SET completed = 1 - completed WHERE user_id = ? AND task_id = ?').run(interaction.user.id, id)
-            const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName);
+            const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName, interaction.user.displayAvatarURL());
             await i.update({ embeds: [embed], components: rows });
         })
 	},

@@ -5,7 +5,7 @@ const db = require('../../database.js');
 module.exports = {
 	data: new SlashCommandBuilder().setName('characters').setDescription('Display all characters in your account'),
 	async execute(interaction) {
-        const embed = new EmbedBuilder().setTitle(`${interaction.member.displayName}'s Characters`).setColor(Math.floor(Math.random() * 0xFFFFFF));
+        const embed = new EmbedBuilder().setTitle(`${interaction.member.displayName}'s Characters`).setColor(Math.floor(Math.random() * 0xFFFFFF)).setThumbnail(interaction.user.displayAvatarURL());
         const allCharacters = db.prepare('SELECT name, class FROM characters WHERE user_id = ?').all(interaction.user.id);
         
         if (allCharacters.length === 0) {

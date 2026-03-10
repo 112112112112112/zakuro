@@ -4,7 +4,7 @@ const db = require('../../database.js');
 module.exports = {
 	data: new SlashCommandBuilder().setName('tasks').setDescription('Display all tasks'),
 	async execute(interaction) {
-        const embed = new EmbedBuilder().setTitle('Elsword Tasks').setColor('#DDFF00');
+        const embed = new EmbedBuilder().setTitle('Elsword Tasks').setColor('#DDFF00').setThumbnail(interaction.user.displayAvatarURL());
         
         const combinations = [
             { reset: 'daily', bound: 'account' },

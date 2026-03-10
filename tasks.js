@@ -3,7 +3,7 @@ const db = require(`./database.js`);
 const tasks = [
     // * Daily + Account
     { title: `Battle Pass Daily`, reset: `daily`, bound: `account`},
-    { title: `x5 Serpentium Dungeon`, reset: `daily`, bound: `account`},
+    { title: `Serpentium Daily`, reset: `daily`, bound: `account`},
 
     // * Daily + Character
     { title: `Heroic Dungeon`, reset: `daily`, bound: `character`},
@@ -16,7 +16,7 @@ const tasks = [
     { title: `Secret Dungeon`, reset: `weekly`, bound: `account`},
     { title: `Blacksmith Craft`, reset: `weekly`, bound: `account`},
     { title: `Dragon Lens Craft`, reset: `weekly`, bound: `account`},
-    { title: `x15 Serpentium Dungeon`, reset: `weekly`, bound: `account`},
+    { title: `Serpentium Weekly`, reset: `weekly`, bound: `account`},
 
     // * Weekly + Character
     { title: `Henir`, reset: `weekly`, bound: `character`},
