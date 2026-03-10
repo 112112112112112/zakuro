@@ -97,35 +97,38 @@ module.exports = {
                 })
             );
 
+            let currentChar = null;
+            let currentEmote = null;
             const characterRow = new ActionRowBuilder().addComponents(characterSelect);
             await interaction.reply({ components: [characterRow] });
 
             const collector = interaction.channel.createMessageComponentCollector({
                 componentType: ComponentType.StringSelect,
                 filter: i => i.customId === 'chartasks' && i.user.id === interaction.user.id,
-                max: 1,
                 time: 60000
             });
 
             collector.on('collect', async i => {
-                const char = userChars.find(c => c.name === i.values[0]);
-                const emote = userClasses.find(cls => cls.name === char.class).emote;
-                const { embed, rows } = characterChecklistBuilder(char.id, `${emote} ${char.name}`, interaction.user.displayAvatarURL())
-                await i.update({ embeds: [embed], components: rows });
+                currentChar = userChars.find(c => c.name === i.values[0]);
+                currentEmote = userClasses.find(cls => cls.name === currentChar.class).emote;
+                const { embed, rows } = characterChecklistBuilder(currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
+                await i.update({ embeds: [embed], components: [characterRow, ...rows] });
 
-                const buttonCollector = interaction.channel.createMessageComponentCollector({
-                    componentType: ComponentType.Button,
-                    filter: i => i.user.id === interaction.user.id,
-                    time: 60000
-                });
-
-                buttonCollector.on('collect', async i => {
-                    const id = parseInt(i.customId);
-                    db.prepare('UPDATE checklist SET completed = 1 - completed WHERE character_id = ? AND task_id = ?').run(char.id, id);
-                    const { embed, rows } = characterChecklistBuilder(char.id, `${emote} ${char.name}`, interaction.user.displayAvatarURL())
-                    await i.update({ embeds: [embed], components: rows });
-                })
             });
+
+            const buttonCollector = interaction.channel.createMessageComponentCollector({
+                componentType: ComponentType.Button,
+                filter: i => i.user.id === interaction.user.id,
+                time: 60000
+            });
+
+            buttonCollector.on('collect', async i => {
+                if (!currentChar) return;
+                const id = parseInt(i.customId);
+                db.prepare('UPDATE checklist SET completed = 1 - completed WHERE character_id = ? AND task_id = ?').run(currentChar.id, id);
+                const { embed, rows } = characterChecklistBuilder(currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
+                await i.update({ embeds: [embed], components: [characterRow, ...rows] });
+            })
         } else {
 
             
