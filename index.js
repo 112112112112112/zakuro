@@ -2,7 +2,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, MessageFlags } = require('discord.js');
 const { token } = require('./config.json');
-require('./database.js');
+const cron = require('node-cron');
+const db = require('./database.js');
 require('./tasks.js')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -40,5 +41,23 @@ for (const file of eventFiles) {
 		client.on(event.name, (...args) => event.execute(...args));
 	}
 }
+
+// * Daily reset
+cron.schedule('0 1 * * *', async () => {
+	db.prepare("UPDATE checklist SET completed = 0 WHERE task_id IN (SELECT id FROM tasks WHERE reset = 'daily')").run();
+	const channel = await client.channels.fetch('1426625638483103966');
+	await channel.send('Daily tasks have been reset!');
+}, {
+	timezone: 'Europe/Madrid'
+})
+
+// * Weekly reset
+cron.schedule('0 1 * * 3', async () => {
+	db.prepare("UPDATE checklist SET completed = 0 WHERE task_id IN (SELECT id FROM tasks WHERE reset = 'weekly')").run();
+	const channel = await client.channels.fetch('1426625638483103966');
+	await channel.send('Weekly tasks have been reset!');
+}, {
+	timezone: 'Europe/Madrid'
+})
 
 client.login(token);
