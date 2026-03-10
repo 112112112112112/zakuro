@@ -15,7 +15,7 @@ module.exports = {
 
         let fieldCount = 0;
 
-        for (const { reset, bound} of combinations) {
+        for (const { reset, bound } of combinations) {
             const tasks = db.prepare('SELECT * FROM tasks WHERE reset = ? AND bound = ?').all(reset, bound);
 
             embed.addFields({
