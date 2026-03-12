@@ -44,7 +44,21 @@ function checklistBuilder(userId, displayName, avatar) {
  * @param {*} avatar - User's profile picture
  * @returns 
  */
-function characterChecklistBuilder(charId, displayName, avatar) {
+function characterChecklistBuilder(userId, charId, displayName, avatar) {
+    const hasCharChecklist = db.prepare('SELECT * FROM checklist WHERE character_id = ?').get(charId);
+    if (!hasCharChecklist) {
+        const tasks = db.prepare('SELECT id, bound FROM tasks').all();
+        for (const task of tasks) {
+            if (task.bound === 'character') {
+                const taskExists = db.prepare('SELECT * FROM checklist WHERE task_id = ? AND character_id = ?').get(task.id, charId);
+                if (!taskExists) {
+                    db.prepare('INSERT INTO checklist (user_id, character_id, task_id, completed) VALUES (?, ?, ?, 0)').run(userId, charId, task.id);
+                }
+            }
+        }
+    }
+
+    // TODO CHECK THAT CHARACTER IS SYNCED
     const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.character_id = ? AND tasks.bound = 'character'")
     .all(charId);
 
@@ -87,13 +101,31 @@ module.exports = {
             return interaction.reply({ content: `Make an account using /register before trying to view your checklist!`, flags: MessageFlags.Ephemeral});
         }
 
-        const hasChecklist = db.prepare('SELECT * FROM checklist WHERE user_id = ?').get(interaction.user.id);
+        const usesCharacter = interaction.options.getBoolean('character');
+        const hasChecklist = db.prepare('SELECT * FROM checklist WHERE user_id = ? AND character_id IS NULL').get(interaction.user.id);
+
         if (!hasChecklist) {
-            return interaction.reply({ content: 'Use `/sync` first to see your checklist!' });
+            const tasks = db.prepare('SELECT id, bound FROM tasks').all();
+            const chars = db.prepare('SELECT id FROM characters WHERE user_id = ?').all(interaction.user.id);
+            for (const task of tasks) {
+                if (task.bound === 'account') {
+                    const taskExists = db.prepare('SELECT * FROM checklist WHERE user_id = ? AND task_id = ? AND character_id IS NULL').get(interaction.user.id, task.id);
+                    if (!taskExists) {
+                        db.prepare('INSERT INTO checklist (user_id, task_id, completed) VALUES (?, ?, 0)').run(interaction.user.id, task.id);
+                    }
+                }
+                else {
+                    for (const char of chars) {
+                        const taskExists = db.prepare('SELECT * FROM checklist WHERE user_id = ? AND task_id = ? AND character_id = ?').get(interaction.user.id, task.id, char.id);
+                        if (!taskExists) {
+                            db.prepare('INSERT INTO checklist (user_id, character_id, task_id, completed) VALUES (?, ?, ?, 0)').run(interaction.user.id, char.id, task.id);
+                        }
+                    }
+                }
+            }
         }
 
         // ? Character Checklist ===============================================================================
-        const usesCharacter = interaction.options.getBoolean('character');
         if (usesCharacter) {
             const userChars = db.prepare('SELECT id, name, class FROM characters WHERE user_id = ?').all(interaction.user.id);
             if (userChars.length === 0) {
@@ -130,7 +162,7 @@ module.exports = {
             collector.on('collect', async i => {
                 currentChar = userChars.find(c => c.name === i.values[0]);
                 currentEmote = userClasses.find(cls => cls.name === currentChar.class).emote;
-                const { embed, rows } = characterChecklistBuilder(currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
+                const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
                 await i.update({ embeds: [embed], components: [characterRow, ...rows] });
 
             });
@@ -146,7 +178,7 @@ module.exports = {
                 if (!currentChar) return;
                 const id = parseInt(i.customId);
                 db.prepare('UPDATE checklist SET completed = 1 - completed WHERE character_id = ? AND task_id = ?').run(currentChar.id, id);
-                const { embed, rows } = characterChecklistBuilder(currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
+                const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
                 await i.update({ embeds: [embed], components: [characterRow, ...rows] });
             })
         } else {
