@@ -14,7 +14,7 @@ module.exports = {
             return interaction.reply({ content: `Make an account using /register before trying to remove a character!`, flags: MessageFlags.Ephemeral});
         }
 
-        const userChars = db.prepare('SELECT name, class FROM characters WHERE user_id = ?').all(interaction.user.id);
+        const userChars = db.prepare('SELECT id, name, class FROM characters WHERE user_id = ?').all(interaction.user.id);
         
         if (userChars.length === 0) {
             return interaction.reply({ content: 'Use /add-character first, your account is empty!' })
