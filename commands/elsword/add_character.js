@@ -14,6 +14,11 @@ module.exports = {
             return interaction.reply({ content: `Make an account using /register before trying to add a character!`, flags: MessageFlags.Ephemeral});
         }
 
+        const nameExists = db.prepare('SELECT * FROM characters WHERE name = ? AND user_id = ?').get(interaction.options.getString('name'), interaction.user.id);
+        if (nameExists) {
+            return interaction.reply({ content: `You already have a character with that name!`, flags: MessageFlags.Ephemeral});
+        }
+
         const characterSelect = new StringSelectMenuBuilder()
         .setCustomId('character')
         .setPlaceholder('Choose your character')
