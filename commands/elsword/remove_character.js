@@ -49,6 +49,7 @@ module.exports = {
         collector.on('collect', async i => {
             const char = userChars.find(c => c.name === i.values[0]);
             const emote = userClasses.find(cls => cls.name === char.class).emote;
+            db.prepare('DELETE FROM checklist WHERE character_id = ?').run(char.id);
             db.prepare('DELETE FROM characters WHERE user_id = ? AND name = ?').run(interaction.user.id, i.values[0]);
             await i.update({ content: `Removed character ${emote} ${char.name} from your account!`, components: [] });
         });
