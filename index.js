@@ -51,6 +51,16 @@ cron.schedule('0 1 * * *', async () => {
 	timezone: 'Europe/Madrid'
 })
 
+// * Weekly reminder before reset
+cron.schedule('15 16 * * 2', async () => {
+	const weeklies = db.prepare("SELECT title FROM tasks WHERE reset = 'weekly'").all();
+	const weekliesList = weeklies.map(t => `✦ ${t.title}`).join('\n');
+	const channel = await client.channels.fetch('1426625638483103966');
+	await channel.send(`⚠️ **Weekly tasks will be reset in less than 9 hours!** ⚠️\nRemember to complete them!\n${weekliesList} ⚠️`);
+}, {
+	timezone: 'Europe/Madrid'
+})
+
 // * Weekly reset
 cron.schedule('0 1 * * 3', async () => {
 	db.prepare("UPDATE checklist SET completed = 0 WHERE task_id IN (SELECT id FROM tasks WHERE reset = 'weekly')").run();
