@@ -152,10 +152,11 @@ module.exports = {
             let currentEmote = null;
             const characterRow = new ActionRowBuilder().addComponents(characterSelect);
             await interaction.reply({ components: [characterRow] });
+            const msg = await interaction.fetchReply();
 
             const collector = interaction.channel.createMessageComponentCollector({
                 componentType: ComponentType.StringSelect,
-                filter: i => i.customId === 'chartasks' && i.user.id === interaction.user.id,
+                filter: i => i.customId === 'chartasks' && i.user.id === interaction.user.id && i.message.id === msg.id,
                 time: 60000
             });
 
@@ -170,7 +171,7 @@ module.exports = {
             // ? Update checklist on button click
             const buttonCollector = interaction.channel.createMessageComponentCollector({
                 componentType: ComponentType.Button,
-                filter: i => i.user.id === interaction.user.id,
+                filter: i => i.user.id === interaction.user.id && i.message.id === msg.id,
                 time: 60000
             });
 
@@ -185,10 +186,12 @@ module.exports = {
             // ? Account Checklist ===============================================================================
             const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName, interaction.user.displayAvatarURL());
             await interaction.reply({ embeds: [embed], components: rows });
+            const msg = await interaction.fetchReply();
+
             
             const collector = interaction.channel.createMessageComponentCollector({
                 componentType: ComponentType.Button,
-                filter: i => i.user.id === interaction.user.id,
+                filter: i => i.user.id === interaction.user.id && i.message.id === msg.id,
                 time: 60000
             });
             
