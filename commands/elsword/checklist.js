@@ -44,7 +44,7 @@ function checklistBuilder(userId, displayName, avatar) {
  * @param {*} avatar - User's profile picture
  * @returns 
  */
-function characterChecklistBuilder(userId, charId, displayName, avatar) {
+function characterChecklistBuilder(userId, charId, displayName, avatar, isSimplified) {
     const hasCharChecklist = db.prepare('SELECT * FROM checklist WHERE character_id = ?').get(charId);
     if (!hasCharChecklist) {
         const tasks = db.prepare('SELECT id, bound FROM tasks').all();
@@ -58,17 +58,17 @@ function characterChecklistBuilder(userId, charId, displayName, avatar) {
         }
     }
 
-    // TODO CHECK THAT CHARACTER IS SYNCED
     const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.character_id = ? AND tasks.bound = 'character'")
     .all(charId);
+    const filteredTasks = isSimplified ? accountTasks.filter(t => ['Doom Aporia', 'Challenge Mode', `x10 Spirit Lord's Temple`].includes(t.title)) : accountTasks;
 
     const embed = new EmbedBuilder().setTitle(`${displayName}'s Checklist`).setColor('#ff7b00').setThumbnail(avatar);
     const rows = [];
 
     let description = '';
     
-    for (let i = 0; i < accountTasks.length; i++) {
-        const task = accountTasks[i];
+    for (let i = 0; i < filteredTasks.length; i++) {
+        const task = filteredTasks[i];
         description += `${task.completed ? '✅' : '❌'} ${task.title}\n\n`;
 
         if (i % 5 === 0) {
@@ -91,6 +91,11 @@ module.exports = {
     .addBooleanOption(option =>
         option.setName('character')
         .setDescription('View to-do list per character')
+        .setRequired(false)
+    )
+    .addBooleanOption(option =>
+        option.setName('simplified')
+        .setDescription('View to-do list for Doom, Challenge and Spirit Lord Temple only')
         .setRequired(false)
     ),
 
@@ -132,6 +137,7 @@ module.exports = {
                 return interaction.reply({ content: 'Use /add-character first, your account is empty!', flags: MessageFlags.Ephemeral });
             }
 
+            const isSimplified = interaction.options.getBoolean('simplified');
             const userClasses = Object.values(classes).flat();
         
             const characterSelect = new StringSelectMenuBuilder()
@@ -163,7 +169,7 @@ module.exports = {
             collector.on('collect', async i => {
                 currentChar = userChars.find(c => c.name === i.values[0]);
                 currentEmote = userClasses.find(cls => cls.name === currentChar.class).emote;
-                const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
+                const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL(), isSimplified)
                 await i.update({ embeds: [embed], components: [characterRow, ...rows] });
 
             });
@@ -179,7 +185,7 @@ module.exports = {
                 if (!currentChar) return;
                 const id = parseInt(i.customId);
                 db.prepare('UPDATE checklist SET completed = 1 - completed WHERE character_id = ? AND task_id = ?').run(currentChar.id, id);
-                const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL())
+                const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL(), isSimplified)
                 await i.update({ embeds: [embed], components: [characterRow, ...rows] });
             })
         } else {
