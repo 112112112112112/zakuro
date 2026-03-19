@@ -14,7 +14,7 @@ function checklistBuilder(userId, displayName, avatar) {
     const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.user_id = ? AND tasks.bound = 'account' AND checklist.character_id IS NULL")
     .all(userId);
 
-    const embed = new EmbedBuilder().setTitle(`${displayName}'s Account Checklist`).setColor('#ff7b00').setThumbnail(avatar);
+    const embed = new EmbedBuilder().setTitle(`${displayName}'s Account Checklist`).setColor(Math.floor(Math.random() * 0xFFFFFF)).setThumbnail(avatar);
     const rows = [];
 
     let description = '';
@@ -62,7 +62,7 @@ function characterChecklistBuilder(userId, charId, displayName, avatar, isSimpli
     .all(charId);
     const filteredTasks = isSimplified ? accountTasks.filter(t => ['Doom Aporia', 'Challenge Mode', `x10 Spirit Lord's Temple`].includes(t.title)) : accountTasks;
 
-    const embed = new EmbedBuilder().setTitle(`${displayName}'s Checklist`).setColor('#ff7b00').setThumbnail(avatar);
+    const embed = new EmbedBuilder().setTitle(`${displayName}'s Checklist`).setColor(Math.floor(Math.random() * 0xFFFFFF)).setThumbnail(avatar);
     const rows = [];
 
     let description = '';
