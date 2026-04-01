@@ -157,7 +157,8 @@ module.exports = {
             let currentChar = null;
             let currentEmote = null;
             const characterRow = new ActionRowBuilder().addComponents(characterSelect);
-            await interaction.reply({ components: [characterRow] });
+            await interaction.deferReply();
+            await interaction.editReply({ components: [characterRow] });
             const msg = await interaction.fetchReply();
 
             const collector = interaction.channel.createMessageComponentCollector({
@@ -167,10 +168,11 @@ module.exports = {
             });
 
             collector.on('collect', async i => {
+                await i.deferUpdate();
                 currentChar = userChars.find(c => c.name === i.values[0]);
                 currentEmote = userClasses.find(cls => cls.name === currentChar.class).emote;
                 const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL(), isSimplified)
-                await i.update({ embeds: [embed], components: [characterRow, ...rows] });
+                await i.editReply({ embeds: [embed], components: [characterRow, ...rows] });
 
             });
 
@@ -182,16 +184,18 @@ module.exports = {
             });
 
             buttonCollector.on('collect', async i => {
+                await i.deferUpdate();
                 if (!currentChar) return;
                 const id = parseInt(i.customId);
                 db.prepare('UPDATE checklist SET completed = 1 - completed WHERE character_id = ? AND task_id = ?').run(currentChar.id, id);
                 const { embed, rows } = characterChecklistBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL(), isSimplified)
-                await i.update({ embeds: [embed], components: [characterRow, ...rows] });
+                await i.editReply({ embeds: [embed], components: [characterRow, ...rows] });
             })
         } else {
             // ? Account Checklist ===============================================================================
             const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName, interaction.user.displayAvatarURL());
-            await interaction.reply({ embeds: [embed], components: rows });
+            await interaction.deferReply();
+            await interaction.editReply({ embeds: [embed], components: rows });
             const msg = await interaction.fetchReply();
 
             
@@ -202,10 +206,11 @@ module.exports = {
             });
             
             collector.on('collect', async i => {
+                await i.deferUpdate();
                 const id = parseInt(i.customId);
                 db.prepare('UPDATE checklist SET completed = 1 - completed WHERE user_id = ? AND task_id = ?').run(interaction.user.id, id)
                 const { embed, rows } = checklistBuilder(interaction.user.id, interaction.member.displayName, interaction.user.displayAvatarURL());
-                await i.update({ embeds: [embed], components: rows });
+                await i.editReply({ embeds: [embed], components: rows });
             })
         }
 	},
