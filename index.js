@@ -1,3 +1,6 @@
+const { ProxyAgent, setGlobalDispatcher } = require('undici');
+setGlobalDispatcher(new ProxyAgent('socks5://127.0.0.1:40000'));
+
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, MessageFlags } = require('discord.js');
