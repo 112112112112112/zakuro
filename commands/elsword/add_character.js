@@ -14,7 +14,8 @@ module.exports = {
             return interaction.reply({ content: `Make an account using /register before trying to add a character!`, flags: MessageFlags.Ephemeral});
         }
 
-        const nameExists = db.prepare('SELECT * FROM characters WHERE name = ? AND user_id = ?').get(interaction.options.getString('name'), interaction.user.id);
+        const name = interaction.options.getString('name');
+        const nameExists = db.prepare('SELECT * FROM characters WHERE name = ? AND user_id = ?').get(name, interaction.user.id);
         if (nameExists) {
             return interaction.reply({ content: `You already have a character with that name!`, flags: MessageFlags.Ephemeral});
         }
@@ -29,44 +30,45 @@ module.exports = {
         ));
 
         const characterRow = new ActionRowBuilder().addComponents(characterSelect);
+        const msg = await interaction.reply({ components: [characterRow], fetchReply: true });
+        let selectedChar = null;
 
-        await interaction.reply({ components: [characterRow] });
-
-        const collector = interaction.channel.createMessageComponentCollector({
+        const collector = msg.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
-            filter: i => i.customId === 'character' && i.user.id === interaction.user.id,
-            max: 1,
+            filter: i => i.user.id === interaction.user.id && i.message.id === msg.id,
+            max: 2,
             time: 60000
         });
 
         collector.on('collect', async i => {
-            const classSelect = new StringSelectMenuBuilder()
-            .setCustomId('class')
-            .setPlaceholder('Choose your class')
-            .addOptions(
-                classes[i.values[0]].map(cls => new StringSelectMenuOptionBuilder()
-                .setLabel(cls.name)
-                .setValue(cls.name)
-                .setEmoji(cls.emote)
-            ));
+            if (i.customId === 'character') {
+                selectedChar = i.values[0];
 
-            const classRow = new ActionRowBuilder().addComponents(classSelect);
-            await i.update({ components: [classRow] });
+                const classSelect = new StringSelectMenuBuilder()
+                .setCustomId('class')
+                .setPlaceholder('Choose your class')
+                .addOptions(
+                    classes[selectedChar].map(cls => new StringSelectMenuOptionBuilder()
+                    .setLabel(cls.name)
+                    .setValue(cls.name)
+                    .setEmoji(cls.emote)
+                ));
 
-            const selectedChar = i.values[0];
-            const classCollector = interaction.channel.createMessageComponentCollector({
-                componentType: ComponentType.StringSelect,
-                filter: i => i.customId === 'class' && i.user.id === interaction.user.id,
-                max: 1,
-                time: 60000
-            });
+                const classRow = new ActionRowBuilder().addComponents(classSelect);
+                return await i.update({ components: [classRow] });
+            }
 
-            classCollector.on('collect', async i => {
+            if (i.customId === 'class') {
                 const selectedClass = classes[selectedChar].find(cls => cls.name === i.values[0]);
-                db.prepare('INSERT INTO characters (user_id, name, class) VALUES (?, ?, ?)').run(interaction.user.id, interaction.options.getString('name'), i.values[0]);
+                db.prepare(
+                    `INSERT INTO characters (user_id, name, class, base_character)
+                    VALUES (?, ?, ?, ?)`
+                ).run(interaction.user.id, name, selectedClass.name, selectedChar);
 
-                await i.update({ content: `Added character ${selectedClass.emote} ${interaction.options.getString('name')} to your account!`, components: [] });
-            });
+                collector.stop();
+
+                return await i.update({ content: `Added character ${selectedClass.emote} ${name} to your account!`, components: [] });
+            }
         });
     },
 };
