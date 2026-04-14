@@ -120,12 +120,12 @@ module.exports = {
         collector.on('collect', async i => {
             currentChar = userChars.find(c => c.id === parseInt(i.values[0]));
             currentEmote = userClasses.find(cls => cls.name === currentChar.class).emote;
-            const { embed, rows } = settingsBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL());
+            const { embed, rows } = settingsBuilder(currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL());
             await i.update({ embeds: [embed], components: [row, ...rows] });
         });
 
         // ? Update settings on button click
-        const buttonCollector = interaction.channel.createMessageComponentCollector({
+        const buttonCollector = msg.createMessageComponentCollector({
             componentType: ComponentType.Button,
             filter: i => i.user.id === interaction.user.id && i.message.id === msg.id,
             time: 60000
@@ -133,12 +133,14 @@ module.exports = {
 
         buttonCollector.on('collect', async i => {
             if (!i.customId.startsWith('toggle_')) return;
-            if (!currentChar) return;
+            if (!currentChar) {
+                return i.reply({ content: 'You need to select a character first!', flags: MessageFlags.Ephemeral })
+            };
 
             const id = parseInt(i.customId.split('_')[1]);
             db.prepare('UPDATE checklist SET enabled = 1 - enabled WHERE character_id = ? AND task_id = ?').run(currentChar.id, id);
 
-            const { embed, rows } = settingsBuilder(interaction.user.id, currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL());
+            const { embed, rows } = settingsBuilder(currentChar.id, `${currentEmote} ${currentChar.name}`, interaction.user.displayAvatarURL());
             await i.update({ embeds: [embed], components: [row, ...rows] });
         })
 	},
