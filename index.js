@@ -54,10 +54,10 @@ cron.schedule('0 20 * * *', async () => {
 	for (const user of users) {
 		const hasChars = db.prepare('SELECT id FROM characters WHERE user_id = ?').get(user.id);
 
-		if (!hasChars) {
+		if (hasChars) {
 			const missingDailies = db.prepare(`SELECT tasks.title 
 				FROM tasks JOIN checklist ON tasks.id = checklist.task_id 
-				WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'daily' AND checklist.character_id IS NULL`).all(user.id);
+				WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'daily' AND checklist.character_id IS NULL AND checklist.enabled = 1`).all(user.id);
 
 			if (missingDailies.length > 0) {
 				const taskList = missingDailies.map(t => `- ${t.title}`).join('\n');
@@ -88,11 +88,11 @@ cron.schedule('0 0 * * 2', async () => {
 	for (const user of users) {
 		const hasChars = db.prepare('SELECT id FROM characters WHERE user_id = ?').get(user.id);
 		
-		if (!hasChars) {
+		if (hasChars) {
 			const missingWeeklies = db.prepare(`SELECT tasks.title, characters.name AS char_name, characters.class AS char_class 
 			FROM tasks JOIN checklist ON tasks.id = checklist.task_id 
 			LEFT JOIN characters ON checklist.character_id = characters.id 
-			WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'weekly'`).all(user.id);
+			WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'weekly' AND checklist.enabled = 1`).all(user.id);
 
 			if (missingWeeklies.length > 0) {
 				const charMap = {};
