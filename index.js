@@ -52,14 +52,18 @@ cron.schedule('0 20 * * *', async () => {
 	const users = db.prepare('SELECT id FROM users').all();
 
 	for (const user of users) {
-		const missingDailies = db.prepare(`SELECT tasks.title 
-			FROM tasks JOIN checklist ON tasks.id = checklist.task_id 
-			WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'daily' AND checklist.character_id IS NULL`).all(user.id);
+		const hasChars = db.prepare('SELECT id FROM characters WHERE user_id = ?').get(user.id);
 
-		if (missingDailies.length > 0) {
-			const taskList = missingDailies.map(t => `- ${t.title}`).join('\n');
-            const fullMsg = `<@${user.id}>, don't forget to complete your dailies! Here's what you are missing:\n## Dailies\n${taskList}`
-			await channel.send(fullMsg);
+		if (!hasChars) {
+			const missingDailies = db.prepare(`SELECT tasks.title 
+				FROM tasks JOIN checklist ON tasks.id = checklist.task_id 
+				WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'daily' AND checklist.character_id IS NULL`).all(user.id);
+
+			if (missingDailies.length > 0) {
+				const taskList = missingDailies.map(t => `- ${t.title}`).join('\n');
+				const fullMsg = `<@${user.id}>, don't forget to complete your dailies! Here's what you are missing:\n## Dailies\n${taskList}`
+				await channel.send(fullMsg);
+			}
 		}
 	}
 }, {
@@ -82,37 +86,41 @@ cron.schedule('0 0 * * 2', async () => {
 	const userClasses = Object.values(classes).flat();
 
 	for (const user of users) {
-		    const missingWeeklies = db.prepare(`SELECT tasks.title, characters.name AS char_name, characters.class AS char_class 
+		const hasChars = db.prepare('SELECT id FROM characters WHERE user_id = ?').get(user.id);
+		
+		if (!hasChars) {
+			const missingWeeklies = db.prepare(`SELECT tasks.title, characters.name AS char_name, characters.class AS char_class 
 			FROM tasks JOIN checklist ON tasks.id = checklist.task_id 
 			LEFT JOIN characters ON checklist.character_id = characters.id 
 			WHERE checklist.user_id = ? AND checklist.completed = 0 AND tasks.reset = 'weekly'`).all(user.id);
 
-		if (missingWeeklies.length > 0) {
-            const charMap = {};
-            for (const t of missingWeeklies) {
-                if (t.char_name) {
-                    const emote = userClasses.find(cls => cls.name === t.char_class).emote;
-                    const key = `${emote} **${t.char_name}**`;
-                    if (!charMap[key]) {
-                        charMap[key] = [];
-                    }
-                    charMap[key].push(t.title);
-                } else {
-                    if (!charMap['account']) {
-                        charMap['account'] = [];
-                    }
-                    charMap['account'].push(t.title);
-                }
-            }
+			if (missingWeeklies.length > 0) {
+				const charMap = {};
+				for (const t of missingWeeklies) {
+					if (t.char_name) {
+						const emote = userClasses.find(cls => cls.name === t.char_class).emote;
+						const key = `${emote} **${t.char_name}**`;
+						if (!charMap[key]) {
+							charMap[key] = [];
+						}
+						charMap[key].push(t.title);
+					} else {
+						if (!charMap['account']) {
+							charMap['account'] = [];
+						}
+						charMap['account'].push(t.title);
+					}
+				}
 
-            const taskList = Object.entries(charMap).map(([char, tasks]) => {
-                const header = char === 'account' ? '' : char;
-                return `${header}\n${tasks.map(t => `- ${t}`).join('\n')}`;
-            }).join('\n\n');
+				const taskList = Object.entries(charMap).map(([char, tasks]) => {
+					const header = char === 'account' ? '' : char;
+					return `${header}\n${tasks.map(t => `- ${t}`).join('\n')}`;
+				}).join('\n\n');
 
-            const fullMsg = `<@${user.id}>, don't forget to complete your weeklies! Here's what you are missing:\n## Weeklies\n${taskList}`
-            const msg = fullMsg.length > 2000 ? fullMsg.substring(0, 1997) + '...' : fullMsg;
-			await channel.send(msg);
+				const fullMsg = `<@${user.id}>, don't forget to complete your weeklies! Here's what you are missing:\n## Weeklies\n${taskList}`
+				const msg = fullMsg.length > 2000 ? fullMsg.substring(0, 1997) + '...' : fullMsg;
+				await channel.send(msg);
+			}
 		}
 	}
 }, {
