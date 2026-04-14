@@ -3,7 +3,7 @@ const db = require('../../database.js');
 const classes = require('../../classes.js');
 
 /**
- * Create an embed wist of tasks based on completion for the user's in-game account
+ * Create an embed list of tasks based on completion for the user's in-game account
  * Create rows of 5 buttons at most for each task, green if completed, red if not
  * @param {*} userId - User's discord ID
  * @param {*} displayName - User's display name in the discord server
@@ -23,12 +23,14 @@ function checklistBuilder(userId, displayName, avatar) {
         const task = accountTasks[i];
         description += `${task.completed ? '✅' : '❌'} ${task.title}\n\n`;
 
-        if (i % 5 === 0) {
-            rows.push(new ActionRowBuilder());
+        const rowIndex = Math.floor(i / 5);
+
+        if (!rows[rowIndex]) {
+            rows[rowIndex] = new ActionRowBuilder();
         }
         
         const button = new ButtonBuilder().setCustomId(task.id.toString()).setLabel(task.title).setStyle(task.completed ? ButtonStyle.Success : ButtonStyle.Danger);
-        rows[rows.length - 1].addComponents(button);
+        rows[rowIndex].addComponents(button);
     }
 
     embed.setDescription(description);
@@ -58,7 +60,7 @@ function characterChecklistBuilder(userId, charId, displayName, avatar, isSimpli
         }
     }
 
-    const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.character_id = ? AND tasks.bound = 'character'")
+    const accountTasks = db.prepare("SELECT tasks.id, tasks.title, checklist.completed FROM tasks JOIN checklist ON tasks.id = checklist.task_id WHERE checklist.character_id = ? AND tasks.bound = 'character' AND COALESCE(checklist.enabled, 1) = 1")
     .all(charId);
     const filteredTasks = isSimplified ? accountTasks.filter(t => ['Doom Aporia', 'Challenge Mode', `x10 Spirit Lord's Temple`].includes(t.title)) : accountTasks;
 
@@ -71,12 +73,14 @@ function characterChecklistBuilder(userId, charId, displayName, avatar, isSimpli
         const task = filteredTasks[i];
         description += `${task.completed ? '✅' : '❌'} ${task.title}\n\n`;
 
-        if (i % 5 === 0) {
-            rows.push(new ActionRowBuilder());
+        const rowIndex = Math.floor(i / 5);
+
+        if (!rows[rowIndex]) {
+            rows[rowIndex] = new ActionRowBuilder();
         }
         
         const button = new ButtonBuilder().setCustomId(task.id.toString()).setLabel(task.title).setStyle(task.completed ? ButtonStyle.Success : ButtonStyle.Danger);
-        rows[rows.length - 1].addComponents(button);
+        rows[rowIndex].addComponents(button);
     }
 
     embed.setDescription(description);
