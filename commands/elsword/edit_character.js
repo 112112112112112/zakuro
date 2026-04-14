@@ -7,7 +7,7 @@ module.exports = {
     .setName('edit-character')
     .setDescription('Edit a character from your account')
     .addStringOption((option) => option.setName('name').setDescription('Current character name').setRequired(true))
-    .addStringOption((option) => option.setName('new-name').setDescription('New character name').setRequired(true)),
+    .addStringOption((option) => option.setName('new-name').setDescription('New character name').setRequired(false)),
 
     async execute(interaction) {
         const userExists = db.prepare('SELECT * FROM users WHERE id = ?').get(interaction.user.id);
@@ -16,17 +16,22 @@ module.exports = {
         }
 
         const oldName = interaction.options.getString('name');
-        const newName = interaction.options.getString('new-name');
+        const newNameOption = interaction.options.getString('new-name');
+
+        const newName = newNameOption ?? oldName;
 
         const character = db.prepare('SELECT * FROM characters WHERE name = ? AND user_id = ?').get(oldName, interaction.user.id);
-        const newNameExists = db.prepare('SELECT * FROM characters WHERE name = ? AND user_id = ?').get(newName, interaction.user.id);
 
         if (!character) {
             return interaction.reply({ content: `You don't have a character with that name!`, flags: MessageFlags.Ephemeral })
         }
 
-        if (newNameExists) {
-            return interaction.reply({ content: `You already have a character with that name!`, flags: MessageFlags.Ephemeral })
+        if (newNameOption) {
+            const newNameExists = db.prepare('SELECT * FROM characters WHERE name = ? AND user_id = ?').get(newName, interaction.user.id);
+
+            if (newNameExists) {
+                return interaction.reply({ content: `You already have a character with that name!`, flags: MessageFlags.Ephemeral })
+            }
         }
 
         const charClasses = classes[character.base_character];
@@ -44,9 +49,10 @@ module.exports = {
         );
         
         const classRow = new ActionRowBuilder().addComponents(classSelect);
+        const oldEmote = Object.values(classes).flat().find(cls => cls.name === character.class).emote;
 
         const msg = await interaction.reply({
-            content: `*Editing character from ${oldName} to ${newName}*`,
+            content: `*Editing character ${oldEmote} **${oldName}***`,
             components: [classRow],
             fetchReply: true
         });
