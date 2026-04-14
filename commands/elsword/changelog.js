@@ -7,6 +7,6 @@ module.exports = {
         // ? (YYYY-MM-DD) Commit message
         const log = execSync('git log -10 --no-merges --pretty=format:"(%ad) %s" --date=short').toString();
 
-        await interaction.reply('Here are the latest bot updates: ', log);
+        await interaction.reply(`Here are the latest bot updates:\n\n${log}`);
 	},
 };
