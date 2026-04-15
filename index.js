@@ -128,7 +128,7 @@ cron.schedule('0 0 * * 2', async () => {
 });
 
 // * Weekly reset
-cron.schedule('0 10 * * 3', async () => {
+cron.schedule('0 0 * * 3', async () => {
 	db.prepare("UPDATE checklist SET completed = 0 WHERE task_id IN (SELECT id FROM tasks WHERE reset = 'weekly')").run();
 	const channel = await client.channels.fetch('1426625638483103966');
 	await channel.send('Weekly tasks have been reset!');
