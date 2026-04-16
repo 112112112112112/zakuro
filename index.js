@@ -47,7 +47,7 @@ for (const file of eventFiles) {
 }
 
 // * Daily reminder
-cron.schedule('0 20 * * *', async () => {
+cron.schedule('0 16 * * *', async () => {
 	const channel = await client.channels.fetch('1426625638483103966');
 	const users = db.prepare('SELECT id FROM users').all();
 
